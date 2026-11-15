@@ -1,40 +1,33 @@
-import { services } from "../data/content";
+import type { CSSProperties } from 'react'
+import { services } from '../data/content'
+import { site } from '../config/site'
+import Head from '../components/Head'
+import Decor from '../components/Decor'
 
-export default function Services({ onPick }: { onPick: (t: string) => void }) {
+// Клик по карточке ведёт к форме и подставляет услугу в поле «Что нужно».
+export default function Services({ onPick }: { onPick: (title: string) => void }) {
   return (
-    <section id="services" className="sec light services">
-      <p className="mono sec__no">03 / services</p>
-      <h2 className="big" data-reveal>
-        Что я<br />
-        могу сделать.
-      </h2>
-      <p className="services__intro">
-        Цены и сроки обсуждаются под задачу — после уточнения объёма работ.
-      </p>
-      <ul className="svc">
-        {services.map((s) => (
-          <li key={s.id} data-reveal>
-            <h3>{s.title}</h3>
-            <div>
-              <p>{s.gets}</p>
-              <p className="mono">Решает: {s.solves}</p>
-            </div>
-            <ul>
-              {s.includes.map((i) => (
-                <li key={i}>{i}</li>
-              ))}
-              {s.note && <li className="note">{s.note}</li>}
-            </ul>
-            <a
-              className="btn btn--dark"
-              href="#contact"
-              onClick={() => onPick(s.type)}
-            >
-              Оставить заявку
-            </a>
-          </li>
-        ))}
-      </ul>
+    <section id="services" className="sec">
+      <Decor />
+      <div className="wrap">
+        <Head no="01" label="Услуги" title="Что можно заказать" />
+        <ul className="cards">
+          {services.map((s, i) => (
+            <li key={s.id} data-reveal style={{ '--d': `${(i % 3) * 80}ms` } as CSSProperties}>
+              <a className="card" href="#contact" onClick={() => onPick(s.title)}>
+                <span className="card__no">{String(i + 1).padStart(2, '0')}</span>
+                <h3>{s.title}</h3>
+                <p>{s.gets}</p>
+                <p className="card__solves"><b>Когда нужно.</b> {s.solves}</p>
+                <span className="card__foot">
+                  {site.prices[s.id] && <b>{site.prices[s.id]}</b>}
+                  <span className="card__go">Выбрать<i aria-hidden="true">→</i></span>
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
-  );
+  )
 }
