@@ -10,13 +10,16 @@ export default function Process() {
   // Синяя линия заполняется по мере прокрутки шагов
   useEffect(() => {
     const el = box.current!
-    if (reducedMotion()) { el.style.setProperty('--p', '1'); return }
+    if (reducedMotion()) { el.style.setProperty('--p', '1'); el.querySelectorAll('li').forEach(li => li.classList.add('on')); return }
     let raf = 0
     const run = () => {
       raf = 0
       const r = el.getBoundingClientRect()
       const p = (window.innerHeight * 0.6 - r.top) / r.height
-      el.style.setProperty('--p', String(Math.min(1, Math.max(0, p))))
+      const done = Math.min(1, Math.max(0, p))
+      el.style.setProperty('--p', String(done))
+      // шаг подсвечивается, когда линия до него дошла
+      el.querySelectorAll<HTMLElement>('li').forEach(li => li.classList.toggle('on', li.offsetTop <= done * r.height))
     }
     const on = () => { if (!raf) raf = requestAnimationFrame(run) }
     run()

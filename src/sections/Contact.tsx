@@ -94,7 +94,7 @@ export default function Contact({ preset }: { preset: string }) {
                 aria-invalid={!!err.message} aria-describedby={err.message ? 'message-e' : undefined} />
               {err.message && <p id="message-e" className="err" role="alert">{err.message}</p>}
             </div>
-            <button className="btn" type="submit">Обсудить проект<span aria-hidden="true">→</span></button>
+            <button className="btn" type="submit" data-magnet>Обсудить проект<span aria-hidden="true">→</span></button>
             {res && (
               <div className="ok" role="status">
                 {res.channel === 'copy' ? (

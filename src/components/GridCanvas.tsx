@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { reducedMotion } from '../hooks/useSite'
 
 // Живой фон первого экрана: архитектурная сетка, по линиям которой бегут синие импульсы.
+// Пятно света подсвечивает сетку: следует за курсором, а без курсора (телефон) плавно блуждает само.
 // Рисуется только пока первый экран виден. При prefers-reduced-motion — статичный кадр.
 interface Pulse { vertical: boolean; line: number; pos: number; speed: number; len: number }
 
@@ -15,6 +16,9 @@ export default function GridCanvas() {
     const still = reducedMotion()
     let w = 0, h = 0, cell = 64, raf = 0, last = 0, visible = true
     let pulses: Pulse[] = []
+    let grid = new Path2D()
+    // свет: текущее положение (lx, ly) плавно догоняет цель (tx, ty)
+    let lx = 0, ly = 0, tx = 0, ty = 0, lastMove = -1e9
 
     const spawn = (p: Pulse, anywhere: boolean) => {
       p.vertical = Math.random() < 0.5
@@ -25,15 +29,40 @@ export default function GridCanvas() {
       p.pos = anywhere ? Math.random() * span : p.speed > 0 ? -p.len : span + p.len
     }
 
-    const draw = (dt: number) => {
+    const draw = (dt: number, now: number) => {
       ctx.clearRect(0, 0, w, h)
-      ctx.lineWidth = 1
-      ctx.strokeStyle = 'rgba(185,191,201,.1)'
-      ctx.beginPath()
-      for (let x = 0.5; x <= w; x += cell) { ctx.moveTo(x, 0); ctx.lineTo(x, h) }
-      for (let y = 0.5; y <= h; y += cell) { ctx.moveTo(0, y); ctx.lineTo(w, y) }
-      ctx.stroke()
 
+      // базовая сетка
+      ctx.lineWidth = 1
+      ctx.strokeStyle = 'rgba(185,191,201,.09)'
+      ctx.stroke(grid)
+
+      // пятно света
+      if (now - lastMove > 2500) {
+        tx = w * (0.5 + 0.36 * Math.sin(now / 3100))
+        ty = h * (0.45 + 0.28 * Math.cos(now / 4300))
+      }
+      const k = Math.min(1, dt * 5)
+      lx += (tx - lx) * k
+      ly += (ty - ly) * k
+      const R = Math.max(170, Math.min(w, h) * 0.36)
+      const light = ctx.createRadialGradient(lx, ly, 0, lx, ly, R)
+      light.addColorStop(0, 'rgba(111,155,255,.6)')
+      light.addColorStop(1, 'rgba(111,155,255,0)')
+      ctx.strokeStyle = light
+      ctx.stroke(grid)
+      // узлы сетки рядом со светом
+      for (let gx = Math.floor((lx - R) / cell); gx <= Math.ceil((lx + R) / cell); gx++) {
+        for (let gy = Math.floor((ly - R) / cell); gy <= Math.ceil((ly + R) / cell); gy++) {
+          const x = gx * cell + 0.5, y = gy * cell + 0.5
+          const d = Math.hypot(x - lx, y - ly) / R
+          if (d >= 1) continue
+          ctx.fillStyle = `rgba(160,190,255,${((1 - d) ** 2 * 0.9).toFixed(3)})`
+          ctx.fillRect(x - 1.5, y - 1.5, 3, 3)
+        }
+      }
+
+      // импульсы
       ctx.lineWidth = 1.5
       for (const p of pulses) {
         p.pos += p.speed * dt
@@ -68,12 +97,16 @@ export default function GridCanvas() {
           spawn(p, true)
           return p
         })
+        lx = tx = w * 0.65; ly = ty = h * 0.4
       }
-      draw(0)
+      grid = new Path2D()
+      for (let x = 0.5; x <= w; x += cell) { grid.moveTo(x, 0); grid.lineTo(x, h) }
+      for (let y = 0.5; y <= h; y += cell) { grid.moveTo(0, y); grid.lineTo(w, y) }
+      draw(0, performance.now())
     }
 
     const tick = (t: number) => {
-      draw(Math.min(0.05, (t - last) / 1000))
+      draw(Math.min(0.05, (t - last) / 1000), t)
       last = t
       raf = requestAnimationFrame(tick)
     }
@@ -84,15 +117,26 @@ export default function GridCanvas() {
       raf = requestAnimationFrame(tick)
     }
     const onVisibility = () => (document.hidden ? stop() : start())
+    const onPointer = (e: PointerEvent) => {
+      if (!visible) return
+      const r = c.getBoundingClientRect()
+      tx = e.clientX - r.left; ty = e.clientY - r.top
+      lastMove = performance.now()
+    }
 
     const ro = new ResizeObserver(resize)
     ro.observe(c)
     const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; if (visible) start(); else stop() })
     io.observe(c)
     document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('pointermove', onPointer, { passive: true })
     resize()
     start()
-    return () => { stop(); ro.disconnect(); io.disconnect(); document.removeEventListener('visibilitychange', onVisibility) }
+    return () => {
+      stop(); ro.disconnect(); io.disconnect()
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pointermove', onPointer)
+    }
   }, [])
 
   return <canvas ref={ref} />

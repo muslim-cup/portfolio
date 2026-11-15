@@ -15,6 +15,39 @@ export function useReveal() {
   }, [])
 }
 
+// Эффекты для мыши: наклон карточек ([data-tilt]) и «магнитные» кнопки ([data-magnet]).
+// Хук только записывает CSS-переменные, само движение описано в global.css.
+export function usePointerFx() {
+  useEffect(() => {
+    if (reducedMotion()) return
+    const vars = ['--rx', '--ry', '--mx', '--my', '--bx', '--by']
+    let current: HTMLElement | null = null
+    const reset = () => { if (current) vars.forEach(v => current!.style.removeProperty(v)); current = null }
+    const move = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return
+      const el = (e.target as Element).closest<HTMLElement>('[data-tilt],[data-magnet]')
+      if (el !== current) reset()
+      if (!el) return
+      current = el
+      const r = el.getBoundingClientRect()
+      const x = (e.clientX - r.left) / r.width - 0.5
+      const y = (e.clientY - r.top) / r.height - 0.5
+      if (el.hasAttribute('data-tilt')) {
+        el.style.setProperty('--ry', (x * 9).toFixed(2) + 'deg')
+        el.style.setProperty('--rx', (-y * 9).toFixed(2) + 'deg')
+        el.style.setProperty('--mx', (e.clientX - r.left).toFixed(0) + 'px')
+        el.style.setProperty('--my', (e.clientY - r.top).toFixed(0) + 'px')
+      } else {
+        el.style.setProperty('--bx', (x * r.width * 0.25).toFixed(1) + 'px')
+        el.style.setProperty('--by', (y * r.height * 0.4).toFixed(1) + 'px')
+      }
+    }
+    document.addEventListener('pointermove', move, { passive: true })
+    document.documentElement.addEventListener('pointerleave', reset)
+    return () => { document.removeEventListener('pointermove', move); document.documentElement.removeEventListener('pointerleave', reset) }
+  }, [])
+}
+
 // Параллакс: элемент с data-parallax="0.2" сдвигается относительно своего родителя.
 // Отрицательное число — отстаёт от прокрутки, положительное — обгоняет.
 export function useParallax() {

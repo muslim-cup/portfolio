@@ -74,8 +74,11 @@ export default function Preview({ p }: { p: Project }) {
         <div className="pv__bar"><i /><i /><i /><span /></div>
         <div className="pv__screen"><Shot src={p.image}><Desktop v={p.variant} /></Shot></div>
       </div>
-      <div className="pv__phone">
-        <div className="pv__screen"><Shot src={p.imageMobile}><Mobile v={p.variant} /></Shot></div>
+      {/* телефон чуть смещается при прокрутке — появляется глубина */}
+      <div className="pv__float" data-parallax="-0.05">
+        <div className="pv__phone">
+          <div className="pv__screen"><Shot src={p.imageMobile}><Mobile v={p.variant} /></Shot></div>
+        </div>
       </div>
     </div>
   )

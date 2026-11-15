@@ -14,7 +14,7 @@ export default function Services({ onPick }: { onPick: (title: string) => void }
         <ul className="cards">
           {services.map((s, i) => (
             <li key={s.id} data-reveal style={{ '--d': `${(i % 3) * 80}ms` } as CSSProperties}>
-              <a className="card" href="#contact" onClick={() => onPick(s.title)}>
+              <a className="card" href="#contact" data-tilt onClick={() => onPick(s.title)}>
                 <span className="card__no">{String(i + 1).padStart(2, '0')}</span>
                 <h3>{s.title}</h3>
                 <p>{s.gets}</p>
